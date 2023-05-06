@@ -54,7 +54,7 @@ G.add_edge('mère B', 'grand-mère maternelle B', weight=0.5)
 
 data = nx.to_scipy_sparse_array(G)
 
-data = load_npz('data/matrix.npz')
+data = load_npz('../../results/matrix.npz')
 data = coo_matrix(data)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
