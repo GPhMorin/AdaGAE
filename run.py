@@ -6,6 +6,7 @@ import numpy as np
 import networkx as nx
 from sklearn.cluster import OPTICS
 from scipy.sparse import coo_matrix
+from sklearn.decomposition import PCA, TruncatedSVD
 
 warnings.filterwarnings('ignore')
 
@@ -81,5 +82,9 @@ for lam in np.power(2.0, np.array(range(-10, 10, 2))):
 # print(accs)
 # print(nmis)
 
-clusters = OPTICS().fit_predict(emb)
-print(clusters)
+pca = OPTICS().fit_predict(PCA(n_components=2).fit_transform(np.asarray(data.todense())))
+svd = OPTICS().fit_predict(TruncatedSVD(n_components=2).fit_transform(data))
+adagae = OPTICS().fit_predict(emb)
+print(f'PCA: {pca}')
+print(f'TruncatedSVD: {svd}')
+print(f'AdaGAE: {adagae}')
