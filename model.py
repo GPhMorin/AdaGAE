@@ -89,7 +89,7 @@ class GAE(torch.nn.Module):
 
 
 class AdaGAE(torch.nn.Module):
-    def __init__(self, X, labels, layers=None, lam=0.1, num_neighbors=3, learning_rate=10**-3,
+    def __init__(self, X, layers=None, lam=0.1, num_neighbors=3, learning_rate=10**-3,
                  max_iter=50, max_epoch=10, update=True, inc_neighbors=2, links=0, device=None):
         super(AdaGAE, self).__init__()
         if layers is None:
@@ -97,7 +97,7 @@ class AdaGAE(torch.nn.Module):
         if device is None:
             device = torch.device('cuda: 0' if torch.cuda.is_available() else 'cpu')
         self.X = X
-        self.labels = labels
+        # self.labels = labels
         self.lam = lam
         self.learning_rate = learning_rate
         self.max_iter = max_iter
@@ -108,7 +108,7 @@ class AdaGAE(torch.nn.Module):
         self.input_dim = layers[0]
         self.update = update
         self.inc_neighbors = inc_neighbors
-        self.max_neighbors = self.cal_max_neighbors()
+        self.max_neighbors = X.shape[0]
         self.links = links
         self.device = device
 
@@ -165,7 +165,7 @@ class AdaGAE(torch.nn.Module):
         Laplacian = Laplacian.to_sparse()
         torch.cuda.empty_cache()
         print('Raw-CAN:', end=' ')
-        self.clustering(weights, k_means=False)
+        # self.clustering(weights, k_means=False)
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         self.to(self.device)
         for epoch in range(self.max_epoch):
@@ -184,7 +184,7 @@ class AdaGAE(torch.nn.Module):
             # scio.savemat('results/embedding_{}.mat'.format(epoch), {'Embedding': self.embedding.cpu().detach().numpy()})
             if self.num_neighbors < self.max_neighbors:
                 weights, Laplacian, raw_weights = self.update_graph()
-                acc, nmi = self.clustering(weights, k_means=True, SC=True)
+                # acc, nmi = self.clustering(weights, k_means=True, SC=True)
                 self.num_neighbors += self.inc_neighbors
             else:
                 if self.update:
@@ -197,13 +197,14 @@ class AdaGAE(torch.nn.Module):
                 w, _, __ = self.update_graph()
                 _, __ = (None, None)
                 torch.cuda.empty_cache()
-                acc, nmi = self.clustering(w, k_means=False)
+                # acc, nmi = self.clustering(w, k_means=False)
                 weights = weights.to(self.device)
                 raw_weights = raw_weights.to(self.device)
                 if self.update:
                     break
-            # print('epoch:%3d,' % epoch, 'loss: %6.5f' % loss.item())
-        return acc, nmi
+            print('epoch:%3d,' % epoch, 'loss: %6.5f' % loss.item())
+        embedding = self.embedding.cpu().detach().numpy()
+        return embedding
 
     def clustering(self, weights, k_means=True, SC=True):
         n_clusters = np.unique(self.labels).shape[0]
