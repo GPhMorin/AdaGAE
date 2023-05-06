@@ -5,7 +5,7 @@ import numpy as np
 
 import networkx as nx
 from sklearn.cluster import OPTICS
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, load_npz
 from sklearn.decomposition import PCA, TruncatedSVD
 
 warnings.filterwarnings('ignore')
@@ -53,6 +53,8 @@ G.add_edge('mère B', 'grand-père maternel B', weight=0.5)
 G.add_edge('mère B', 'grand-mère maternelle B', weight=0.5)
 
 data = nx.to_scipy_sparse_array(G)
+
+data = load_npz('data/matrix.npz')
 data = coo_matrix(data)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -63,10 +65,10 @@ X = torch.sparse_coo_tensor(
     indices=torch.LongTensor([data.row, data.col]),
     values=torch.FloatTensor(data.data),
     size=data.shape,
-).to_dense().to(device)
+).to(device)
 
 input_dim = data.shape[1]
-layers = [input_dim, 32, 16]
+layers = [input_dim, 1024, 64]
 accs = [];
 nmis = [];
 emb = None

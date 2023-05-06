@@ -12,11 +12,11 @@ def distance(X, Y, square=True):
     """
     n = X.shape[1]
     m = Y.shape[1]
-    x = torch.norm(X, dim=0)
+    x = torch.norm(X)
     x = x * x  # n * 1
     x = torch.t(x.repeat(m, 1))
 
-    y = torch.norm(Y, dim=0)
+    y = torch.norm(Y)
     y = y * y  # m * 1
     y = y.repeat(n, 1)
 
@@ -55,7 +55,7 @@ def cal_weights_via_CAN(X, num_neighbors, links=0):
     sum_top_k = None
     torch.cuda.empty_cache()
     weights = weights.relu().cpu()
-    if links is not 0:
+    if links != 0:
         links = torch.Tensor(links).cuda()
         weights += torch.eye(size).cuda()
         weights += links
