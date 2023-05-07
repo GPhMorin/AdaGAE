@@ -1,6 +1,11 @@
 import scipy.io as scio
 import numpy as np
 
+import pickle
+import networkx as nx
+from scipy.sparse import load_npz, csr_matrix
+from tqdm import tqdm
+
 UMIST = 'UMIST'
 COIL20 = 'COIL20'
 JAFFE = 'JAFFE'
@@ -34,3 +39,69 @@ def load_data(name):
     X = X.astype(np.float32)
     X /= np.max(X)
     return X, labels
+
+
+def load_demo():
+    G = nx.MultiGraph()
+
+    G.add_node('fils A')
+    G.add_node('père A')
+    G.add_node('mère A')
+    G.add_node('grand-père paternel A')
+    G.add_node('grand-mère paternelle A')
+    G.add_node('grand-père maternel A')
+    G.add_node('grand-mère maternelle A')
+
+    G.add_node('fille B')
+    G.add_node('père B')
+    G.add_node('mère B')
+    G.add_node('grand-père paternel B')
+    G.add_node('grand-mère paternelle B')
+    G.add_node('grand-père maternel B')
+    G.add_node('grand-mère maternelle B')
+
+    G.add_edge('fils A', 'père A', weight=0.5)
+    G.add_edge('fils A', 'mère A', weight=0.5)
+    G.add_edge('fils A', 'grand-père paternel A', weight=0.25)
+    G.add_edge('fils A', 'grand-mère paternelle A', weight=0.25)
+    G.add_edge('fils A', 'grand-père maternel A', weight=0.25)
+    G.add_edge('fils A', 'grand-mère maternelle A', weight=0.25)
+
+    G.add_edge('père A', 'grand-père paternel A', weight=0.5)
+    G.add_edge('père A', 'grand-mère paternelle A', weight=0.5)
+    G.add_edge('mère A', 'grand-père maternel A', weight=0.5)
+    G.add_edge('mère A', 'grand-mère maternelle A', weight=0.5)
+
+    G.add_edge('fille B', 'père B', weight=0.5)
+    G.add_edge('fille B', 'mère B', weight=0.5)
+    G.add_edge('fille B', 'grand-père paternel B', weight=0.25)
+    G.add_edge('fille B', 'grand-mère paternelle B', weight=0.25)
+    G.add_edge('fille B', 'grand-père maternel B', weight=0.25)
+    G.add_edge('fille B', 'grand-mère maternelle B', weight=0.25)
+
+    G.add_edge('père B', 'grand-père paternel B', weight=0.5)
+    G.add_edge('père B', 'grand-mère paternelle B', weight=0.5)
+    G.add_edge('mère B', 'grand-père maternel B', weight=0.5)
+    G.add_edge('mère B', 'grand-mère maternelle B', weight=0.5)
+
+    data = nx.to_scipy_sparse_matrix(G)
+    return data
+
+
+def build_array():
+    dok = load_npz('../matrix.npz')
+    csr = csr_matrix(dok)
+    chunk_size = 100
+    chunks = []
+    for i in tqdm(range(0, csr.shape[0], chunk_size)):  # Prepare more than 100 GB of RAM
+        chunks.append(csr[i:i+chunk_size,:].toarray())
+    data = np.concatenate(chunks, axis=0)
+    with open('matrix.pkl', 'wb') as outfile:
+        pickle.dump(data, outfile)
+
+
+def load_balsac():
+    with open('matrix.pkl', 'rb') as infile:
+        data = pickle.load(infile)
+    assert isinstance(data, np.array)
+    return data

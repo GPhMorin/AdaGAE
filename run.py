@@ -5,67 +5,21 @@ import numpy as np
 
 import networkx as nx
 from sklearn.cluster import OPTICS
-from scipy.sparse import coo_matrix, load_npz
-from sklearn.decomposition import PCA, TruncatedSVD
+from scipy.sparse import csr_matrix, load_npz
+from tqdm import tqdm
+import pickle
+from data_loader import load_balsac
 
 warnings.filterwarnings('ignore')
 
-G = nx.MultiGraph()
-
-G.add_node('fils A')
-G.add_node('père A')
-G.add_node('mère A')
-G.add_node('grand-père paternel A')
-G.add_node('grand-mère paternelle A')
-G.add_node('grand-père maternel A')
-G.add_node('grand-mère maternelle A')
-
-G.add_node('fille B')
-G.add_node('père B')
-G.add_node('mère B')
-G.add_node('grand-père paternel B')
-G.add_node('grand-mère paternelle B')
-G.add_node('grand-père maternel B')
-G.add_node('grand-mère maternelle B')
-
-G.add_edge('fils A', 'père A', weight=0.5)
-G.add_edge('fils A', 'mère A', weight=0.5)
-G.add_edge('fils A', 'grand-père paternel A', weight=0.25)
-G.add_edge('fils A', 'grand-mère paternelle A', weight=0.25)
-G.add_edge('fils A', 'grand-père maternel A', weight=0.25)
-G.add_edge('fils A', 'grand-mère maternelle A', weight=0.25)
-
-G.add_edge('père A', 'grand-père paternel A', weight=0.5)
-G.add_edge('père A', 'grand-mère paternelle A', weight=0.5)
-G.add_edge('mère A', 'grand-père maternel A', weight=0.5)
-G.add_edge('mère A', 'grand-mère maternelle A', weight=0.5)
-
-G.add_edge('fille B', 'père B', weight=0.5)
-G.add_edge('fille B', 'mère B', weight=0.5)
-G.add_edge('fille B', 'grand-père paternel B', weight=0.25)
-G.add_edge('fille B', 'grand-mère paternelle B', weight=0.25)
-G.add_edge('fille B', 'grand-père maternel B', weight=0.25)
-G.add_edge('fille B', 'grand-mère maternelle B', weight=0.25)
-
-G.add_edge('père B', 'grand-père paternel B', weight=0.5)
-G.add_edge('père B', 'grand-mère paternelle B', weight=0.5)
-G.add_edge('mère B', 'grand-père maternel B', weight=0.5)
-G.add_edge('mère B', 'grand-mère maternelle B', weight=0.5)
-
-data = nx.to_scipy_sparse_array(G)
-
-data = load_npz('../../results/matrix.npz')
-data = coo_matrix(data)
+data = load_balsac()
+labels = np.zeros(data.shape[0])
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 print(f"Device used: {device}")
 
-X = torch.sparse_coo_tensor(
-    indices=torch.LongTensor([data.row, data.col]),
-    values=torch.FloatTensor(data.data),
-    size=data.shape,
-).to(device)
+X = torch.Tensor(data).to(device)
 
 input_dim = data.shape[1]
 layers = [input_dim, 1024, 64]
@@ -84,9 +38,5 @@ for lam in np.power(2.0, np.array(range(-10, 10, 2))):
 # print(accs)
 # print(nmis)
 
-pca = OPTICS().fit_predict(PCA(n_components=2).fit_transform(np.asarray(data.todense())))
-svd = OPTICS().fit_predict(TruncatedSVD(n_components=2).fit_transform(data))
-adagae = OPTICS().fit_predict(emb)
-print(f'PCA: {pca}')
-print(f'TruncatedSVD: {svd}')
-print(f'AdaGAE: {adagae}')
+labels = OPTICS().fit_predict(emb)
+print(labels)
