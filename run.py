@@ -19,7 +19,10 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 print(f"Device used: {device}")
 
-X = torch.Tensor(data).to(device)
+indices = torch.LongTensor(np.vstack([data.row, data.col]))
+values = torch.FloatTensor(data.data)
+shape = torch.Size(data.shape)
+X = torch.sparse_coo_tensor(indices, values, shape, dtype=torch.float16).to(device)
 
 input_dim = data.shape[1]
 layers = [input_dim, 1024, 64]

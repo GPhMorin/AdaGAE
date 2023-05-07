@@ -101,7 +101,5 @@ def build_array():
 
 
 def load_balsac():
-    with open('matrix.pkl', 'rb') as infile:
-        data = pickle.load(infile)
-    assert isinstance(data, np.array)
+    data = load_npz('../matrix.npz')
     return data

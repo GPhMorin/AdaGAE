@@ -1,5 +1,38 @@
 import torch
 
+from tqdm import tqdm
+
+
+def chunked_sparse_mm(A, B, chunk_size=2):
+    assert A.shape[1] == B.shape[0], "Incompatible matrix dimensions for multiplication."
+
+    # Function to create a sparse tensor for a chunk of A
+    def sparse_chunk(tensor, start, end, dim):
+        indices = (tensor._indices()[dim] >= start) & (tensor._indices()[dim] < end)
+        chunk_indices = tensor._indices()[:, indices]
+        chunk_indices[dim] -= start
+        chunk_values = tensor._values()[indices]
+        chunk_shape = list(tensor.shape)
+        chunk_shape[dim] = end - start
+        return torch.sparse_coo_tensor(chunk_indices, chunk_values, chunk_shape, device=tensor.device)
+
+    # Initialize the result tensor using the first chunk
+    start = 0
+    end = min(chunk_size, A.shape[1])
+    A_chunk = sparse_chunk(A, start, end, 1).to('cpu')
+    B_chunk = sparse_chunk(B, start, end, 0).to('cpu')
+    result = torch.matmul(A_chunk, B_chunk)
+
+    # Accumulate the remaining chunks
+    for i in tqdm(range(end, A.shape[1], chunk_size)):
+        start = i
+        end = min(i + chunk_size, A.shape[1])
+        A_chunk = sparse_chunk(A, start, end, 1).to('cpu')
+        B_chunk = sparse_chunk(B, start, end, 0).to('cpu')
+        result += torch.matmul(A_chunk, B_chunk)
+
+    return result
+
 
 def distance(X, Y, square=True):
     """
@@ -20,7 +53,7 @@ def distance(X, Y, square=True):
     y = y * y  # m * 1
     y = y.repeat(n, 1)
 
-    crossing_term = torch.t(X).matmul(Y)
+    crossing_term = chunked_sparse_mm(torch.t(X).to(torch.float32), Y.to(torch.float32))
     result = x + y - 2 * crossing_term
     result = result.relu()
     if not square:
